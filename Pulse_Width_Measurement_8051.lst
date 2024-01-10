@@ -1,0 +1,1137 @@
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 1
+
+
+
+
+
+       MCS-51 Family Macro Assembler   A S E M - 5 1   V 1.3
+       =====================================================
+
+
+
+	Source File:	D:\0_Workspace_ssd\project_06\Project_06\Software\Pulse_Width_Measurement_8051.asm
+	Object File:	D:\0_Workspace_ssd\project_06\Project_06\Software\Pulse_Width_Measurement_8051.hex
+	List File:	D:\0_Workspace_ssd\project_06\Project_06\Software\Pulse_Width_Measurement_8051.lst
+
+
+
+ Line  I  Addr  Code            Source
+
+    1:				;GROUP-2
+    2:				;190021312, 310, 318, 336 ,344
+    3:
+    4:		N      0000		ORG 00H
+    5:	  0000	02 00 30		LJMP MAINN
+    6:
+    7:		N      002B		ORG 002BH   			; Interrupt Location
+    8:	  002B	B2 A6			CPL P2.6
+    9:	  002D	C2 CF			CLR T2CON.7
+   10:	  002F	32			RETI
+   11:
+   12:		N      0030		ORG 0030H
+   13:	  0030				MAINN:
+   14:	  0030	75 81 70		MOV SP, #70H
+   15:	  0033	75 D0 00		MOV PSW, #00H
+   16:
+   17:		B      00A0		RS EQU P2.0
+   18:		B      00A1		RW EQU P2.1
+   19:		B      00A2		ENBL EQU P2.2
+   20:
+   21:		N      00C8		T2CON EQU 0C8H  		; Had to name memory locations of  timer2 components as miss
+				ing in MIDE
+   22:		N      00C9		T2MOD EQU 0C9H
+   23:		B      00CA		TR2 EQU T2CON.2
+   24:		N      00CA		RCAP2L EQU 0CAH
+   25:		N      00CB		RCAP2H EQU 0CBH
+   26:
+   27:		N      0067		DTC EQU 67H
+   28:		N      0051		FD1 EQU 51H
+   29:		N      0052		FD2 EQU 52H
+   30:		N      0053		FD3 EQU 53H
+   31:		N      0054		FD4 EQU 54H
+   32:		N      0055		FD5 EQU 55H
+   33:
+   34:		N      0061		CAR_TOFF EQU 61H
+   35:		N      0058		TOFF1 EQU 58H
+   36:		N      0059		TOFF2 EQU 59H
+   37:		N      0062		CAR_TON EQU 62H
+   38:		N      005A		TONE1 EQU 5AH
+   39:		N      005B		TONE2 EQU 5BH
+   40:
+   41:		N      0066		TOT0 EQU 66H
+   42:		N      0065		TOT1 EQU 65H
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 2
+
+
+
+ Line  I  Addr  Code            Source
+
+   43:		N      0064		TOT2 EQU 64H
+   44:
+   45:		N      0063		REM  EQU 63H
+   46:
+   47:		N      006E		HIH EQU 6EH
+   48:		N      006F		LWO EQU 6FH
+   49:
+   50:	  0036	C2 B0			CLR P3.0
+   51:	  0038	C2 B1		 	CLR P3.1
+   52:	  003A	C2 B2		 	CLR P3.2
+   53:
+   54:	  003C	D2 B3		 	SETB P3.3
+   55:	  003E	D2 A7		 	SETB P2.7
+   56:	  0040	C2 A3		 	CLR P2.3
+   57:	  0042	C2 A4		 	CLR P2.4
+   58:	  0044	C2 A5		 	CLR P2.5
+   59:	  0046	74 00			MOV A,#0d
+   60:	  0048	F5 61			MOV CAR_TOFF,A
+   61:	  004A	F5 62			MOV CAR_TON,A
+   62:
+   63:	  004C	12 03 BD		LCALL LCD_SET_UP
+   64:	  004F	12 04 19		LCALL 	DELAY
+   65:
+   66:	  0052	90 04 A0	 	MOV DPTR, #MSG_1
+   67:	  0055	12 03 AE		LCALL STR_DISP
+   68:
+   69:	  0058	90 04 B1		MOV DPTR, #MSG_2
+   70:	  005B	74 C0			MOV A, #0C0H
+   71:	  005D	12 03 E6		LCALL COMMAND
+   72:	  0060	12 04 19		LCALL DELAY
+   73:	  0063	12 03 AE		LCALL STR_DISP
+   74:
+   75:	  0066	D2 B4		 	SETB P3.4			;set the port to input mode (F1) COUNTER 0 as EXTERNAL INPUT
+   76:	  0068	D2 B5		 	SETB P3.5			;set the port to input mode (F2) COUNTER 1 as EXTERNAL INPUT
+   77:				;---------------------------------------------------------------------------------------------------
+				------------------TASK 1
+   78:				;--------------------------------------------------------------------------FREQUENCY MEASUREMENT of
+				1st Input Signal
+   79:	  006A			AT_START:
+   80:	  006A	C2 B2			CLR P3.2 			; task 2 light off
+   81:	  006C	D2 B1			SETB P3.1 			; task 1 light on
+   82:
+   83:	  006E	75 89 15		MOV TMOD, #15H 			; Timer 1 as timer and Timer 0 as counter
+   84:	  0071	75 88 00		MOV TCON, #00H
+   85:
+   86:	  0074	75 8A 00		MOV TL0,#00H
+   87:	  0077	75 8C 00		MOV TH0,#00H
+   88:	  007A	30 B4 FD		F1_low1: JNB P3.4,F1_low1 	; Dropping two cycle to sync with the 1st signal input
+
+   89:	  007D	20 B4 FD		F1_high1: JB P3.4,F1_high1
+   90:	  0080	D2 8C			SETB TR0
+   91:
+   92:	  0082	78 0F			MOV R0,#15 			; Make 1 SECOND
+   93:	  0084	75 8B FB	AGN:  	MOV TL1, #0FBH
+   94:	  0087	75 8D 0F		MOV TH1, #0FH
+   95:	  008A	D2 8E			SETB TR1
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 3
+
+
+
+ Line  I  Addr  Code            Source
+
+   96:	  008C	30 8F FD	BACK:   JNB TF1, BACK
+   97:	  008F	C2 8F			CLR TF1
+   98:	  0091	C2 8E			CLR TR1
+   99:	  0093	D8 EF			DJNZ R0, AGN
+  100:	  0095	C2 8C			CLR TR0
+  101:				;---------------------------------------------------------------------------DISPLAY FREQUENCY 1
+  102:	  0097	12 03 BD		LCALL LCD_SET_UP
+  103:	  009A	90 04 C1		MOV DPTR, #MSG_3
+  104:	  009D	12 03 AE		LCALL STR_DISP
+  105:
+  106:	  00A0	74 C0			MOV A, #0C0H
+  107:	  00A2	12 03 E6		LCALL COMMAND
+  108:	  00A5	12 04 19		LCALL DELAY
+  109:
+  110:	  00A8	E4			CLR A
+  111:	  00A9	F9			MOV R1,A
+  112:	  00AA	F8			MOV R0,A
+  113:	  00AB	FA			MOV R2,A
+  114:	  00AC	FB			MOV R3,A
+  115:	  00AD	FD			MOV R5,A
+  116:
+  117:	  00AE	AB 8C			MOV R3, TH0
+  118:	  00B0	AA 8A			MOV R2, TL0
+  119:
+  120:	  00B2	C0 03			PUSH 03				; keep TH0 of F1 in stack pointer
+  121:	  00B4	C0 02			PUSH 02				; keep TL0 of F1 in stack pointer
+  122:
+  123:	  00B6	12 03 00		LCALL PRINT_DIGIT_16
+  124:
+  125:	  00B9	90 04 C9		MOV DPTR, #HZ
+  126:	  00BC	12 03 AE		LCALL STR_DISP
+  127:
+  128:				;-------------------------------------------------------------------------Buzzer Alarm
+  129:	  00BF	E5 8C			MOV A,TH0
+  130:	  00C1	70 0F			JNZ NALRM
+  131:	  00C3	E5 8A			MOV A,TL0
+  132:	  00C5	75 F0 32		MOV B,#50d
+  133:	  00C8	B5 F0 00		CJNE A,B,ALRM 			; if TL0 < 50hz
+  134:	  00CB	50 05		ALRM:	JNC NALRM
+  135:	  00CD	D2 B0			SETB P3.0
+  136:	  00CF	02 00 D4		LJMP OKK
+  137:	  00D2	C2 B0		NALRM:  CLR P3.0
+  138:	  00D4			OKK:
+  139:				;--------------------------------------------------------------------------Display difference from 5
+				0Hz
+  140:
+  141:	  00D4	12 03 BD	LCALL LCD_SET_UP
+  142:	  00D7	90 04 CC	MOV DPTR, #MSG_4
+  143:	  00DA	12 03 AE	LCALL STR_DISP
+  144:
+  145:	  00DD	74 C0		MOV A, #0C0H
+  146:	  00DF	12 03 E6	LCALL COMMAND
+  147:	  00E2	12 04 19	LCALL DELAY
+  148:
+  149:	  00E5	E4		CLR A
+  150:	  00E6	C3		CLR C
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 4
+
+
+
+ Line  I  Addr  Code            Source
+
+  151:	  00E7	E5 8A		MOV A , TL0
+  152:	  00E9	94 32		SUBB A, #50d
+  153:	  00EB	FA		MOV R2, A
+  154:	  00EC	E5 8C		MOV A, TH0
+  155:	  00EE	94 00		SUBB A, #0
+  156:	  00F0	FB		MOV R3, A
+  157:
+  158:	  00F1	50 07		JNC NEEE                         ; if carry not found F1>50hz , go to NEEE
+  159:
+  160:	  00F3			NEE:
+  161:	  00F3	74 32		MOV A, #50d
+  162:	  00F5	95 8A		SUBB A, TL0
+  163:	  00F7	FA		MOV R2, A
+  164:	  00F8	7B 00		MOV R3, #0
+  165:
+  166:	  00FA			NEEE:
+  167:	  00FA	7D 00		MOV R5,#0d
+  168:	  00FC	12 03 00	LCALL PRINT_DIGIT_16 		; show difference
+  169:	  00FF	90 04 C9	MOV DPTR, #HZ
+  170:	  0102	12 03 AE	LCALL STR_DISP
+  171:				;-------------------------------------------------------------------------------TOFF CALCULATION
+  172:	  0105	75 8B 00	MOV TL1, #00H
+  173:	  0108	75 8D 00	MOV TH1, #00H
+  174:	  010B	30 B4 FD	TOFF_low1: JNB P3.4,TOFF_low1 		; Dropping two cycle to sync with the signal input
+  175:	  010E	20 B4 FD	TOFF_high1: JB P3.4,TOFF_high1
+
+  176:	  0111	D2 8E		SETB TR1 				; start timer when pulse is low.
+  177:	  0113	30 B4 02	TOFFL_1: JNB P3.4 , TOFFL_2 ;
+  178:	  0116	80 09			SJMP TOFFL_3
+  179:	  0118	30 8F F8	TOFFL_2: JNB TF1  , TOFFL_1 ;
+  180:	  011B	05 61			INC CAR_TOFF			; increment MSB of TOFF
+  181:	  011D	C2 8F			CLR TF1
+  182:	  011F	80 F2			SJMP TOFFL_1
+  183:	  0121	C2 8E		TOFFL_3: CLR TR1
+  184:	  0123	85 8D 58		MOV TOFF1, TH1
+  185:	  0126	85 8B 59		MOV TOFF2, TL1
+  186:				;------------------------------------------------------------------------------TON CALCULATION
+  187:	  0129	75 8B 00	MOV TL1, #00H
+  188:	  012C	75 8D 00	MOV TH1, #00H
+  189:	  012F	20 B4 FD	TON_low1:  JB P3.4 ,TON_low1		; Dropping two cycle to sync with the signal input
+  190:	  0132	30 B4 FD	TON_high1: JNB P3.4,TON_high1
+  191:	  0135	D2 8E		SETB TR1 				; start timer when pulse is high.
+  192:	  0137	20 B4 02	TONL_1: JB P3.4 , TONL_2 ;
+  193:	  013A	80 09			SJMP TONL_3
+  194:	  013C	30 8F F8	TONL_2: JNB TF1  , TONL_1 ;
+  195:	  013F	05 62			INC CAR_TON			; increment MSB of TONE
+  196:	  0141	C2 8F			CLR TF1
+  197:	  0143	80 F2			SJMP TONL_1
+  198:	  0145	C2 8E		TONL_3: CLR TR1
+  199:	  0147	85 8D 5A		MOV TONE1, TH1
+  200:	  014A	85 8B 5B		MOV TONE2, TL1
+  201:				;-------------------------------------------------------------------------------FIND DUTY CYCLE
+  202:				;--------------------------------------------------------------------MAKE Ttotal
+  203:				;CAR_TON
+  204:	  014D	AE 5A		MOV R6,TONE1
+  205:	  014F	AF 5B		MOV R7,TONE2
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 5
+
+
+
+ Line  I  Addr  Code            Source
+
+  206:				;CAR_TOFF
+  207:	  0151	AC 58		MOV R4,TOFF1
+  208:	  0153	AD 59		MOV R5,TOFF2
+  209:
+  210:	  0155	12 04 2A	LCALL ADD_24bit				; output stored in TOT0(highest) TOT1(high byte) TOT2
+  211:	  0158	89 66		MOV TOT0, R1
+  212:	  015A	8A 65		MOV TOT1, R2
+  213:	  015C	8B 64		MOV TOT2, R3
+  214:
+  215:				;--------------------------------------------------------------------------------Two Ttotal secnario
+  216:	  015E	C3		CLR C
+  217:	  015F	E5 64		MOV A, TOT2
+  218:	  0161	94 8A		SUBB A,#10001010b
+  219:	  0163	E5 65		MOV A, TOT1
+  220:	  0165	94 02		SUBB A,#00000010b
+  221:	  0167	E5 66		MOV A, TOT0
+  222:	  0169	94 00		SUBB A, #0d				; whether Total < 650 or note
+  223:	  016B	40 2B		JC SEC_CASEE
+  224:				;--------------------------------------------------------------------------------First case where Tt
+				otal>100
+  225:	  016D			FIR_CASEE:
+  226:									;1st part
+  227:	  016D	AA 64			MOV R2, TOT2
+  228:	  016F	AB 65			MOV R3, TOT1
+  229:	  0171	AC 66			MOV R4, TOT0
+  230:	  0173	78 64			MOV R0, #100d
+  231:	  0175	79 00			MOV R1, #0d
+  232:	  0177	74 00			MOV A,#0d   			;clear
+  233:	  0179	FE			MOV R6,A
+  234:	  017A	FF			MOV R7,A
+  235:	  017B	FD			MOV R5,A
+  236:	  017C	12 04 36		LCALL DIV_24bit
+  237:	  017F	8E 64			MOV TOT2, R6
+  238:	  0181	8F 65			MOV TOT1, R7
+  239:									;2nd part
+  240:	  0183	AA 5B			MOV R2, TONE2
+  241:	  0185	AB 5A			MOV R3, TONE1
+  242:	  0187	AC 62			MOV R4, CAR_TON;
+  243:	  0189	A8 64			MOV R0, TOT2
+  244:	  018B	A9 65			MOV R1, TOT1
+  245:	  018D	74 00			MOV A,#0d   			;clear
+  246:	  018F	FE			MOV R6,A
+  247:	  0190	FF			MOV R7,A
+  248:	  0191	FD			MOV R5,A;
+  249:	  0192	12 04 36		LCALL DIV_24bit
+  250:
+  251:	  0195	02 01 BA		LJMP EXITTT
+  252:				;---------------------------------------------------------------------------------Second case where
+				Ttotal<=100
+  253:	  0198			SEC_CASEE:
+  254:	  0198	C3			CLR C			;1st part ,output will be Ton*100
+  255:				; First number in R6(H) and R7
+  256:				; Second number in R4(H) and R5.
+  257:				; Result oin R0(MSB), R1, R2 and R3(LSB).
+  258:	  0199	AE 5A			MOV R6, TONE1
+  259:	  019B	AF 5B			MOV R7, TONE2
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 6
+
+
+
+ Line  I  Addr  Code            Source
+
+  260:
+  261:	  019D	7C 00			MOV R4,#0d
+  262:	  019F	7D 64			MOV R5,#100d
+  263:
+  264:	  01A1	12 04 70		LCALL MUL16_bit
+  265:
+  266:	  01A4	8B 5B			MOV TONE2 , R3
+  267:	  01A6	8A 5A			MOV TONE1 , R2
+  268:									;2nd part
+  269:	  01A8	AA 5B			MOV R2, TONE2
+  270:	  01AA	AB 5A			MOV R3, TONE1
+  271:	  01AC	7C 00			MOV R4, #0d   			;msb as TON can't be more than 16 bit
+  272:	  01AE	A8 64			MOV R0, TOT2
+  273:	  01B0	A9 65			MOV R1, TOT1
+  274:	  01B2	74 00			MOV A,#0d 			;clear
+  275:	  01B4	FE			MOV R6,A
+  276:	  01B5	FF			MOV R7,A
+  277:	  01B6	FD			MOV R5,A
+  278:	  01B7	12 04 36		LCALL DIV_24bit
+  279:
+  280:	  01BA			EXITTT:
+  281:	  01BA	8E 6F			MOV LWO, R6
+  282:	  01BC	8F 6E			MOV HIH, R7
+  283:				;------------------------------------------------------------------------------------Display duty cy
+				cle
+  284:	  01BE	85 6F 67	MOV DTC, LWO
+  285:
+  286:	  01C1	E5 6F		MOV A, LWO;-------redundency
+  287:	  01C3	94 64		SUBB A, #01100100b
+  288:	  01C5	40 04		JC RED
+  289:
+  290:	  01C7	75 67 5F	MOV DTC, #01011111b
+  291:	  01CA	C3		CLR C
+  292:	  01CB			RED:
+  293:	  01CB	12 03 BD		LCALL LCD_SET_UP
+  294:	  01CE	90 04 D2		MOV DPTR, #MSG_7
+  295:	  01D1	12 03 AE		LCALL STR_DISP
+  296:
+  297:	  01D4	74 C0			MOV A, #0C0H
+  298:	  01D6	12 03 E6		LCALL COMMAND
+  299:	  01D9	12 04 19		LCALL DELAY
+  300:
+  301:	  01DC	E4			CLR A
+  302:	  01DD	E5 67			MOV A,DTC			; TL0 CONTAINS Duty cycle COUNT
+  303:	  01DF	12 03 79		LCALL PRINT_DIGIT
+  304:
+  305:	  01E2	C2 B1		 	CLR P3.1
+  306:	  01E4	D2 B2		 	SETB P3.2
+  307:				;---------------------------------------------------------------------------------------------------
+				---------TASK2
+  308:				;-------------------------------------------------------------------FREQUENCY MEASUREMENT of 2nt Inp
+				ut Signal
+  309:	  01E6	75 89 51	MOV TMOD, #51H 				; Timer 1 as counter and Timer 0 as timer
+  310:	  01E9	75 88 00	MOV TCON, #00H
+  311:
+  312:	  01EC	75 8B 00	MOV TL1,#00H
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 7
+
+
+
+ Line  I  Addr  Code            Source
+
+  313:	  01EF	75 8D 00	MOV TH1,#00H
+  314:	  01F2	30 B5 FD	F2_low1: JNB P3.5,F2_low1
+  315:	  01F5	20 B5 FD	F2_high1: JB P3.5,F2_high1
+  316:							 		; done to sync with the 2nd Input signal from start
+  317:	  01F8	D2 8E		SETB TR1
+  318:
+  319:	  01FA	78 0F		MOV R0,#15 				; MAKE 1 SECOND
+  320:	  01FC	75 8A FB	AGN1:  	MOV TL0, #0FBH
+  321:	  01FF	75 8C 0F		MOV TH0, #0FH
+  322:	  0202	D2 8C			SETB TR0
+  323:	  0204	30 8D FD	BACK1:   JNB TF0, BACK1
+  324:	  0207	C2 8D			CLR TF0
+  325:	  0209	C2 8C			CLR TR0
+  326:	  020B	D8 EF			DJNZ R0, AGN1
+  327:	  020D	C2 8E			CLR TR1
+  328:				;--------------------------------------------------------------------DISPLAY FREQUENCY 2
+  329:	  020F	12 03 BD		LCALL LCD_SET_UP
+  330:	  0212	90 04 D6		MOV DPTR, #MSG_8
+  331:	  0215	12 03 AE		LCALL STR_DISP
+  332:
+  333:	  0218	74 C0			MOV A, #0C0H
+  334:	  021A	12 03 E6		LCALL COMMAND
+  335:	  021D	12 04 19		LCALL DELAY
+  336:
+  337:	  0220	E4			CLR A				;Clear
+  338:	  0221	F9			MOV R1,A
+  339:	  0222	F8			MOV R0,A
+  340:	  0223	FA			MOV R2,A
+  341:	  0224	FB			MOV R3,A
+  342:	  0225	FD			MOV R5,A
+  343:	  0226	AB 8D			MOV R3, TH1
+  344:	  0228	AA 8B			MOV R2, TL1
+  345:
+  346:	  022A	C0 03			PUSH 03         		; Push TH1
+  347:	  022C	C0 02			PUSH 02				; Push TL1
+  348:	  022E	12 03 00		LCALL PRINT_DIGIT_16
+  349:
+  350:	  0231	90 04 C9		MOV DPTR, #HZ
+  351:	  0234	12 03 AE		LCALL STR_DISP
+  352:
+  353:	  0237	C2 A3			CLR P2.3 ;clear LED's
+  354:	  0239	C2 A4			CLR P2.4
+  355:	  023B	C2 A5			CLR P2.5
+  356:				;--------------------------------------------------------------------------------Compare 2 input fre
+				quencies
+  357:	  023D	C3			CLR C
+  358:	  023E	D0 00			POP 00	 			; pop TL1
+  359:	  0240	D0 01			POP 01   			; pop TH1
+  360:	  0242	D0 02			POP 02   			; Pop TL0
+  361:	  0244	D0 03			POP 03   			; pop TH0
+  362:	  0246	E9			MOV A, R1  			; freq 2
+  363:	  0247	8B F0			MOV B, R3  			; freq 1
+  364:	  0249	B5 F0 0B		CJNE A,B , STG1
+  365:	  024C	E8			MOV A,R0   			; since TH0 = TH1
+  366:	  024D	8A F0			MOV B,R2
+  367:	  024F	B5 F0 11		CJNE A,B,  STG2
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 8
+
+
+
+ Line  I  Addr  Code            Source
+
+  368:	  0252	D2 A4			SETB P2.4  			; F2 = F1
+  369:	  0254	02 02 6A		LJMP STG0
+  370:	  0257	40 05		STG1:   JC p23
+  371:	  0259	D2 A5			SETB P2.5  			; freq1 < freq2
+  372:	  025B	02 02 6A		LJMP STG0
+  373:	  025E	D2 A3		p23: 	SETB P2.3  			; freq1 > freq2
+  374:	  0260	02 02 6A		LJMP STG0
+  375:	  0263	40 F9		STG2:	JC p23
+  376:	  0265	D2 A5			SETB P2.5			; freq1 < freq2
+  377:	  0267	02 02 6A		LJMP STG0
+  378:	  026A			STG0:
+  379:				;-----------------------------------------------------------------------Sum of 2 input signals' freq
+				uencies
+  380:	  026A	E8			MOV A, R0
+  381:	  026B	2A			ADD A, R2
+  382:	  026C	F8			MOV R0, A 			; R0=R0+R2 (TL0 of 2 freqs)
+  383:	  026D	E9			MOV A, R1
+  384:	  026E	3B			ADDC A, R3
+  385:	  026F	F9			MOV R1,A  			; R1=R1+R3 (TH0 of 2 freqs)
+  386:
+  387:	  0270	C0 00			PUSH 00
+  388:	  0272	C0 01			PUSH 01
+  389:	  0274	12 03 BD		LCALL LCD_SET_UP
+  390:	  0277	90 04 DE		MOV DPTR, #MSG_9
+  391:	  027A	12 03 AE		LCALL STR_DISP
+  392:
+  393:	  027D	74 C0			MOV A, #0C0H
+  394:	  027F	12 03 E6		LCALL COMMAND
+  395:	  0282	12 04 19		LCALL DELAY
+  396:
+  397:	  0285	D0 03			POP 03 ;H
+  398:	  0287	D0 02			POP 02
+  399:	  0289	C0 02			PUSH 02
+  400:	  028B	C0 03			PUSH 03
+  401:	  028D	12 03 00		LCALL PRINT_DIGIT_16
+  402:
+  403:	  0290	90 04 C9		MOV DPTR, #HZ
+  404:	  0293	12 03 AE		LCALL STR_DISP
+  405:	  0296	D0 01			POP 01
+  406:	  0298	D0 00			POP 00
+  407:				;-----------------------------------------------------------------------Find the time period of the
+				summed frequency
+  408:	  029A	7A 3A			MOV R2, #00111010B 		;LSB dividend
+  409:	  029C	7B 10			MOV R3, #00010000B
+  410:	  029E	7C 0E			MOV R4, #00001110B 		;MSB dividend 921658
+  411:	  02A0	7D 00			MOV R5, #0B
+  412:	  02A2	7E 00			MOV R6, #0B 			;LSB loop counter== quotient
+  413:	  02A4	7F 00			MOV R7,	#0B 			;MSB loop counter==quotient
+  414:	  02A6	12 04 36		LCALL DIV_24bit 		;Final output to be stored in LWO (R6 also) and HIH (R7 also
+				)
+  415:				;----------------------------------------------------------------------Make the output half (for eac
+				h half cycle)
+  416:	  02A9	C3			CLR C
+  417:	  02AA	AA 6F			MOV R2, LWO
+  418:	  02AC	AB 6E			MOV R3, HIH
+  419:	  02AE	7C 00			MOV R4, #0d
+
+ASEM-51 V1.3                                         Copyright (c) 2002 by W.W. Heinz                                         PAGE 9
+
+
+
+ Line  I  Addr  Code            Source
+
+  420:	  02B0	7D 00			MOV R5, #0d
+  421:	  02B2	7E 00			MOV R6, #0d
+  422:	  02B4	7F 00			MOV R7, #0d
+  423:	  02B6	78 02			MOV R0, #2d
+  424:	  02B8	79 00			MOV R1, #0d
+  425:	  02BA	12 04 36		LCALL DIV_24bit
+  426:					;INC R6
+  427:					;MOV LWO, R6
+  428:					;MOV HIH, R7
+  429:
+  430:
+  431:
+  432:				;----------------------------------------------------------------------Start Timer2
+  433:	  02BD	C3			CLR C
+  434:	  02BE	C2 8C			CLR TR0
+  435:	  02C0	75 C8 00		MOV T2CON , #00000000B
+  436:	  02C3	75 C9 00		MOV T2MOD , #00000000B
+  437:	  02C6	74 FF			MOV A, #0FFH
+  438:	  02C8	95 6F			SUBB A, LWO
+  439:	  02CA	F5 6F			MOV LWO,A
+  440:	  02CC	85 6F CA		MOV RCAP2L, LWO 		;Timer initial value = FF- quotient
+  441:	  02CF	C3			CLR C
+  442:
+  443:	  02D0	74 FF			MOV A,#0FFH
+  444:	  02D2	95 6E			SUBB A, HIH
+  445:	  02D4	F5 6E			MOV HIH, A
+  446:	  02D6	85 6E CB		MOV RCAP2H, HIH
+  447:	  02D9	C3			CLR C
+  448:
+  449:	  02DA	75 A8 A0		MOV IE, #10100000B
+  450:	  02DD	D2 CA			SETB TR2
+  451:				;---------------------------------------------------------------------------HALT
+  452:	  02DF	30 B3 03	HLT:	JNB P3.3 ,HLTT ; halt input if grounded
+  453:	  02E2	02 02 ED	LJMP LAST
+  454:	  02E5	20 A7 F7	HLTT:   JB P2.7 ,HLT  ; halt generation if grounded
+  455:	  02E8	C2 CA			CLR TR2
+  456:	  02EA	02 02 DF	LJMP HLT
+  457:				;---------------------------------------------------------------------------RESET
+  458:	  02ED	75 8B 00	LAST:	MOV TL1,#00H
+  459:	  02F0	75 8D 00		MOV TH1,#00H
+  460:	  02F3	75 8A 00		MOV TL0,#00H
+  461:	  02F6	75 8C 00		MOV TH0,#00H
+  462:	  02F9	C2 8E			CLR TR1
+  463:	  02FB	C2 8C			CLR TR0
+  464:
+  465:	  02FD	02 00 6A		LJMP AT_START 			; RETURN TO THE Beginning
+  466:				;---------------------------------------------------------------------------SUBROUTINES
+  467:				;---------------------------------------------------------------------------PRINT_DIGIT_16 Sub-Routi
+				ne
+  468:	  0300			PRINT_DIGIT_16:
+  469:					;Clearing memory space
+  470:	  0300	75 51 00		MOV FD1, #0H	;MSD
+  471:	  0303	75 52 00		MOV FD2, #0H
+  472:	  0306	75 53 00		MOV FD3, #0H
+  473:	  0309	75 54 00		MOV FD4, #0H
+  474:	  030C	75 55 00		MOV FD5, #0H  	;LSD
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 10
+
+
+
+ Line  I  Addr  Code            Source
+
+  475:					; Taking out each digit
+  476:					;1
+  477:					;DIVISOR = 10
+  478:	  030F	79 00			MOV R1, #00H
+  479:	  0311	78 0A			MOV R0, #0AH
+  480:	  0313	7C 00			MOV R4,#0d
+  481:	  0315	12 04 36		LCALL DIV_24BIT
+  482:	  0318	85 63 55		MOV FD5, 63H	; LOW BYTE OF REMAINDER -- LSD 63H
+  483:					;2
+  484:	  031B	AB 07			MOV R3,07H	; QOUTIENT HIGH TO DIVIDEND
+  485:	  031D	AA 06			MOV R2,06H	; QOUTIENT LOW  TO DIVIDEND
+  486:					;DIVISOR = 10
+  487:	  031F	79 00			MOV R1, #00H
+  488:	  0321	78 0A			MOV R0, #0AH
+  489:	  0323	7C 00			MOV R4,#0d
+  490:	  0325	12 04 36		LCALL DIV_24BIT
+  491:	  0328	85 63 54		MOV FD4, 63H	; LOW BYTE OF REMAINDER
+  492:					;3
+  493:	  032B	AB 07			MOV R3,07H	; QOUTIENT HIGH TO DIVIDEND
+  494:	  032D	AA 06			MOV R2,06H	; QOUTIENT LOW  TO DIVIDEND
+  495:					;DIVISOR = 10
+  496:	  032F	79 00			MOV R1, #00H
+  497:	  0331	78 0A			MOV R0, #0AH
+  498:	  0333	7C 00			MOV R4,#0d
+  499:	  0335	12 04 36		LCALL DIV_24BIT
+  500:	  0338	85 63 53		MOV FD3, 63H	; LOW BYTE OF REMAINDER
+  501:					;4
+  502:	  033B	AB 07			MOV R3,07H	; QOUTIENT HIGH TO DIVIDEND
+  503:	  033D	AA 06			MOV R2,06H	; QOUTIENT LOW  TO DIVIDEND
+  504:					;DIVISOR = 10
+  505:	  033F	79 00			MOV R1, #00H
+  506:	  0341	78 0A			MOV R0, #0AH
+  507:	  0343	7C 00			MOV R4,#0d
+  508:	  0345	7D 00			MOV R5,#0d
+  509:	  0347	12 04 36		LCALL DIV_24BIT
+  510:	  034A	85 63 52		MOV FD2, 63H	; LOW BYTE OF REMAINDER
+  511:					;5
+  512:	  034D	85 06 51		MOV FD1, 06H	; LOW BYTE OF QUOTIENT -- MSD
+  513:					; printing
+  514:					;ASCII
+  515:	  0350	E4			CLR A
+  516:	  0351	E5 51			MOV A, FD1
+  517:	  0353	44 30			ORL A, #30H
+  518:	  0355	12 03 F7		LCALL DISPLAY
+  519:					;ASCII
+  520:	  0358	E4			CLR A
+  521:	  0359	E5 52			MOV A, FD2
+  522:	  035B	44 30			ORL A, #30H
+  523:	  035D	12 03 F7		LCALL DISPLAY
+  524:					;ASCII
+  525:	  0360	E4			CLR A
+  526:	  0361	E5 53			MOV A, FD3
+  527:	  0363	44 30			ORL A, #30H
+  528:	  0365	12 03 F7		LCALL DISPLAY
+  529:					;ASCII
+  530:	  0368	E4			CLR A
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 11
+
+
+
+ Line  I  Addr  Code            Source
+
+  531:	  0369	E5 54			MOV A, FD4
+  532:	  036B	44 30			ORL A, #30H
+  533:	  036D	12 03 F7		LCALL DISPLAY
+  534:					;ASCII
+  535:	  0370	E4			CLR A
+  536:	  0371	E5 55			MOV A, FD5
+  537:	  0373	44 30			ORL A, #30H
+  538:	  0375	12 03 F7		LCALL DISPLAY
+  539:	  0378	22			RET
+  540:				;-------------------------------------------------------------------------PRINT_DIGIT Sub-Routine
+  541:	  0379			PRINT_DIGIT:
+  542:	  0379	75 51 00		MOV FD1, #0H	;MSD
+  543:	  037C	75 52 00		MOV FD2, #0H
+  544:	  037F	75 53 00		MOV FD3, #0H  	;LSD
+  545:	  0382	75 54 00		MOV FD4, #0H
+  546:	  0385	75 55 00		MOV FD5, #0H
+  547:
+  548:	  0388	75 F0 0A		MOV B,#10
+  549:	  038B	84			DIV AB
+  550:	  038C	85 F0 53		MOV FD3, B	; LSD
+  551:	  038F	75 F0 0A		MOV B,#10
+  552:	  0392	84			DIV AB
+  553:	  0393	85 F0 52		MOV FD2, B
+  554:	  0396	F5 51			MOV FD1, A	; MSD
+  555:
+  556:	  0398	E5 51			MOV A, FD1
+  557:	  039A	44 30			ORL A, #30H
+  558:	  039C	12 03 F7		LCALL DISPLAY
+  559:
+  560:	  039F	E5 52			MOV A, FD2
+  561:	  03A1	44 30			ORL A, #30H
+  562:	  03A3	12 03 F7		LCALL DISPLAY
+  563:
+  564:	  03A6	E5 53			MOV A, FD3
+  565:	  03A8	44 30			ORL A, #30H
+  566:	  03AA	12 03 F7		LCALL DISPLAY
+  567:	  03AD	22			RET
+  568:				;-------------------------------------------------------------------------STR_DISP Sub-Routine
+  569:	  03AE			STR_DISP:
+  570:	  03AE	E4		 	CLR A
+  571:	  03AF	93			MOVC A,@A+DPTR
+  572:	  03B0	60 0A			JZ FINISH_1
+  573:	  03B2	12 03 F7		LCALL DISPLAY
+  574:	  03B5	12 04 19		LCALL DELAY
+  575:	  03B8	A3			INC DPTR
+  576:	  03B9	02 03 AE		LJMP STR_DISP
+  577:	  03BC	22		FINISH_1: RET
+  578:				;-------------------------------------------------------------------------LCD SETUP Sub-Routine
+  579:	  03BD			LCD_SET_UP:
+  580:
+  581:					; DISPLAY COMMANDS
+  582:	  03BD	74 38			MOV 	A, #38H
+  583:	  03BF	12 03 E6		LCALL 	COMMAND
+  584:	  03C2	12 04 19		LCALL 	DELAY
+  585:	  03C5	74 0E			MOV 	A, #0EH ;display on, cursor on
+  586:	  03C7	12 03 E6		LCALL 	COMMAND
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 12
+
+
+
+ Line  I  Addr  Code            Source
+
+  587:	  03CA	12 04 19		LCALL 	DELAY
+  588:	  03CD	74 01			MOV 	A, #01 	;clear LCD
+  589:	  03CF	12 03 E6		LCALL 	COMMAND
+  590:	  03D2	12 04 19		LCALL 	DELAY
+  591:	  03D5	74 06			MOV 	A, #06H ;shift cursor right
+  592:	  03D7	12 03 E6		LCALL 	COMMAND
+  593:	  03DA	12 04 19		LCALL 	DELAY
+  594:	  03DD	74 80			MOV 	A, #80H ;cursor at line 1 postion 1
+  595:	  03DF	12 03 E6		LCALL 	COMMAND
+  596:	  03E2	12 04 19		LCALL 	DELAY
+  597:	  03E5	22			RET
+  598:
+  599:	  03E6	12 04 08	COMMAND:LCALL READY
+  600:	  03E9	F5 90			MOV P1, A
+  601:	  03EB	C2 A0			CLR RS
+  602:	  03ED	C2 A1			CLR RW
+  603:	  03EF	D2 A2			SETB ENBL
+  604:	  03F1	12 04 19		LCALL DELAY
+  605:	  03F4	C2 A2			CLR ENBL
+  606:	  03F6	22			RET
+  607:
+  608:	  03F7	12 04 08	DISPLAY: LCALL READY
+  609:	  03FA	F5 90			MOV P1, A
+  610:	  03FC	D2 A0			SETB RS
+  611:	  03FE	C2 A1			CLR RW
+  612:	  0400	D2 A2			SETB ENBL
+  613:	  0402	12 04 19		LCALL DELAY
+  614:	  0405	C2 A2			CLR ENBL
+  615:	  0407	22			RET
+  616:
+  617:	  0408	D2 97		READY: 	SETB P1.7
+  618:	  040A	C2 A0			CLR RS
+  619:	  040C	D2 A1		 	SETB RW
+  620:	  040E	C2 A2		WAIT: 	CLR ENBL
+  621:	  0410	12 04 19		LCALL DELAY
+  622:	  0413	D2 A2		 	SETB ENBL
+  623:	  0415	20 97 F6		JB P1.7, WAIT
+  624:	  0418	22			RET
+  625:
+  626:				;-------------------------------------------------------------------------DELAY Sub-Routine (Large)
+
+  627:	  0419	7B 32		DELAY: 	MOV R3, #50
+  628:	  041B	7C FF		AGAIN_2:MOV R4, #255
+  629:	  041D	DC FE		AGAIN: 	DJNZ R4, AGAIN
+  630:	  041F	DB FA			DJNZ R3, AGAIN_2
+  631:	  0421	22			RET
+  632:				;-------------------------------------------------------------------------DELAY2 Sub-Routine (Small)
+  633:	  0422	7D 64		DELAY_2:MOV R5, #100
+  634:	  0424	12 04 19	AGAIN_3:LCALL DELAY
+  635:	  0427	DD FB			DJNZ R5, AGAIN_3
+  636:	  0429	22			RET
+  637:				;-------------------------------------------------------------------------ADD_24bit Sub-Routine
+  638:	  042A			ADD_24bit:
+  639:	  042A	EF		    MOV A,R7
+  640:	  042B	2D		    ADD A,R5
+  641:	  042C	FB		    MOV R3,A
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 13
+
+
+
+ Line  I  Addr  Code            Source
+
+  642:
+  643:	  042D	EE		    MOV A,R6
+  644:	  042E	3C		    ADDC A,R4
+  645:	  042F	FA		    MOV R2,A
+  646:
+  647:	  0430	E5 62		    MOV A,CAR_TON
+  648:	  0432	35 61		    ADDC A,CAR_TOFF
+  649:	  0434	F9		    MOV  R1,A 		;OUTPUT in R1(MSB) , R2, and R3.
+  650:	  0435	22		    RET
+  651:				;--------------------------------------------------------------------------DIV_24bit Sub-Routine
+  652:	  0436			DIV_24bit:
+  653:					;R0= LSB divisor
+  654:					;R1 =2nd MSB divisor
+  655:					;R5 =MSB divisor
+  656:					;R2 =LSB dividend
+  657:					;R3 =2nd MSB dividend
+  658:					;R4 =MSB dividend 921658
+  659:
+  660:					;R6 =LSB quotient = LWO
+  661:					;R7 =MSB quotient = HIH
+  662:
+  663:					;REM =Remainder lower byte
+  664:
+  665:	  0436	E4			CLR A    ;clear
+  666:	  0437	C3			CLR C
+  667:	  0438	FE			MOV R6,A
+  668:	  0439	FF			MOV R7,A
+  669:	  043A	F5 63			MOV REM,A
+  670:
+  671:	  043C			LOOP_SUB:
+  672:
+  673:	  043C	C3			CLR C             ;updates
+  674:	  043D	EA			MOV A,R2
+  675:	  043E	75 F0 0A		MOV B,#10d
+  676:	  0441	B5 F0 00		CJNE A,B,LSST
+  677:	  0444	50 03		LSST:	JNC LSSST
+  678:	  0446	EA			MOV A,R2
+  679:	  0447	F5 63			MOV REM,A
+  680:	  0449			LSSST:
+  681:
+  682:	  0449	C3			CLR C
+  683:	  044A	EA			MOV A,R2
+  684:	  044B	98			SUBB A,R0	;R2=R2-R0-C
+  685:	  044C	FA			MOV R2, A
+  686:
+  687:	  044D	EB			MOV A,R3
+  688:	  044E	99			SUBB A,R1	;R3=R3-R1-C
+  689:	  044F	FB			MOV R3,A
+  690:
+  691:	  0450	EC			MOV A,R4
+  692:	  0451	9D			SUBB A,R5	;R4=R4-0-C
+  693:	  0452	FC			MOV R4,A
+  694:
+  695:
+  696:	  0453	75 F0 FE		MOV B,#0FEH     ;carry overflow to msb of dividend ends program
+  697:	  0456	B5 F0 03		CJNE A,B,LL
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 14
+
+
+
+ Line  I  Addr  Code            Source
+
+  698:	  0459	02 04 6B		LJMP EXITT
+  699:
+  700:	  045C			LL:
+  701:	  045C	50 0D			JNC EXITT
+  702:	  045E	0E			INC R6
+  703:	  045F	EE			MOV A,R6
+  704:	  0460	75 F0 00		MOV B,#0B
+  705:	  0463	B5 F0 01		CJNE A,B,FNNN   ;if R6 resets itself , r7 increases
+  706:	  0466	0F			INC R7
+  707:
+  708:
+  709:
+  710:	  0467			FNNN:
+  711:	  0467	C3			CLR C
+  712:	  0468	02 04 3C		LJMP LOOP_SUB
+  713:	  046B			EXITT:
+  714:	  046B	8E 6F			MOV LWO, R6
+  715:	  046D	8F 6E			MOV HIH, R7
+  716:	  046F	22		RET
+  717:
+  718:	  0470			MUL16_bit:
+  719:				; First number in R6(H) and R7
+  720:				; Second number in R4(H) and R5.
+  721:				; Result oin R0(MSB), R1, R2 and R3(LSB).
+  722:
+  723:
+  724:				 ;Multiply R5 by R7
+  725:	  0470	ED		 MOV A,R5
+  726:	  0471	8F F0		 MOV B,R7
+  727:	  0473	A4		 MUL AB
+  728:	  0474	AA F0		 MOV R2,B
+  729:	  0476	FB		 MOV R3,A
+  730:
+  731:				 ;Multiply R5 by R6
+  732:	  0477	ED		 MOV A,R5
+  733:	  0478	8E F0		 MOV B,R6
+  734:	  047A	A4		 MUL AB
+  735:	  047B	2A		 ADD A,R2
+  736:	  047C	FA		 MOV R2,A
+  737:	  047D	E5 F0		 MOV A,B
+  738:	  047F	34 00		 ADDC A,#00h
+  739:	  0481	F9		 MOV R1,A
+  740:	  0482	74 00		 MOV A,#00h
+  741:	  0484	34 00		 ADDC A,#00h
+  742:	  0486	F8		 MOV R0,A
+  743:
+  744:				 ;Multiply R4 by R7
+  745:	  0487	EC		 MOV A,R4
+  746:	  0488	8F F0		 MOV B,R7
+  747:	  048A	A4		 MUL AB
+  748:	  048B	2A		 ADD A,R2
+  749:	  048C	FA		 MOV R2,A
+  750:	  048D	E5 F0		 MOV A,B
+  751:	  048F	39		 ADDC A,R1
+  752:	  0490	F9		 MOV R1,A
+  753:	  0491	74 00		 MOV A,#00h
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 15
+
+
+
+ Line  I  Addr  Code            Source
+
+  754:	  0493	38		 ADDC A,R0
+  755:	  0494	F8		 MOV R0,A
+  756:
+  757:				 ;Multiply R4 by R6
+  758:	  0495	EC		 MOV A,R4
+  759:	  0496	8E F0		 MOV B,R6
+  760:	  0498	A4		 MUL AB
+  761:	  0499	29		 ADD A,R1
+  762:	  049A	F9		 MOV R1,A
+  763:	  049B	E5 F0		 MOV A,B
+  764:	  049D	38		 ADDC A,R0
+  765:	  049E	F8		 MOV R0,A
+  766:
+  767:				 ;Return - answer is now in R0, R1, R2, and R3
+  768:	  049F	22		 RET
+  769:
+  770:				;-------------------------------------------------------------------------------------Messages
+
+  771:	  04A0	20 20 20 20	MSG_1: 	DB "     GROUP-2    ",0 ; Messages that were shown
+	  04A4	20 47 52 4F
+	  04A8	55 50 2D 32
+	  04AC	20 20 20 20
+	  04B0	00
+  772:	  04B1	33 31 32 2C	MSG_2: 	DB "312,10,18,36,44",0
+	  04B5	31 30 2C 31
+	  04B9	38 2C 33 36
+	  04BD	2C 34 34 00
+  773:	  04C1	46 52 45 51	MSG_3: 	DB "FREQ-1:",0
+	  04C5	2D 31 3A 00
+  774:	  04C9	48 5A 00	HZ: 	DB "HZ",0
+  775:	  04CC	44 49 46 46	MSG_4:	DB "DIFF:",0
+	  04D0	3A 00
+  776:	  04D2	44 43 3A 00	MSG_7:	DB "DC:",0
+  777:	  04D6	46 52 45 51	MSG_8: 	DB "FREQ-2:",0
+	  04DA	2D 32 3A 00
+  778:	  04DE	4E 45 57 20	MSG_9:  DB "NEW FREQ:",0
+	  04E2	46 52 45 51
+	  04E6	3A 00
+  779:					END
+
+
+
+
+
+                     register banks used:  ---
+
+                     no errors
+
+
+
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 16
+
+
+
+
+
+	       L I S T   O F   S Y M B O L S
+	       =============================
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+??ASEM_51			  NUMBER    8051
+??VERSION			  NUMBER    0130
+AC				  BIT	      D6
+ACC				  DATA	      E0
+ADD_24BIT			  CODE	    042A	 638
+AGAIN				  CODE	    041D	 629
+AGAIN_2				  CODE	    041B	 628
+AGAIN_3				  CODE	    0424	 634
+AGN				  CODE	    0084	  93
+AGN1				  CODE	    01FC	 320
+ALRM				  CODE	    00CB	 134
+AT_START			  CODE	    006A	  79
+B				  DATA	      F0
+BACK				  CODE	    008C	  96
+BACK1				  CODE	    0204	 323
+CAR_TOFF			  NUMBER    0061	  34
+CAR_TON				  NUMBER    0062	  37
+COMMAND				  CODE	    03E6	 599
+CY				  BIT	      D7
+DELAY				  CODE	    0419	 627
+DELAY_2				  CODE	    0422	 633
+DISPLAY				  CODE	    03F7	 608
+DIV_24BIT			  CODE	    0436	 652
+DPH				  DATA	      83
+DPL				  DATA	      82
+DTC				  NUMBER    0067	  27
+EA				  BIT	      AF
+ENBL				  NUMBER    00A2	  19
+ES				  BIT	      AC
+ET0				  BIT	      A9
+ET1				  BIT	      AB
+EX0				  BIT	      A8
+EX1				  BIT	      AA
+EXITT				  CODE	    046B	 713
+EXITTT				  CODE	    01BA	 280
+EXTI0				  CODE	    0003
+EXTI1				  CODE	    0013
+F0				  BIT	      D5
+F1_HIGH1			  CODE	    007D	  89
+F1_LOW1				  CODE	    007A	  88
+F2_HIGH1			  CODE	    01F5	 315
+F2_LOW1				  CODE	    01F2	 314
+FD1				  NUMBER    0051	  28
+FD2				  NUMBER    0052	  29
+FD3				  NUMBER    0053	  30
+FD4				  NUMBER    0054	  31
+FD5				  NUMBER    0055	  32
+FINISH_1			  CODE	    03BC	 577
+FIR_CASEE			  CODE	    016D	 225
+FNNN				  CODE	    0467	 710
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 17
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+HIH				  NUMBER    006E	  47
+HLT				  CODE	    02DF	 452
+HLTT				  CODE	    02E5	 454
+HZ				  CODE	    04C9	 774
+IE				  DATA	      A8
+IE0				  BIT	      89
+IE1				  BIT	      8B
+INT0				  BIT	      B2
+INT1				  BIT	      B3
+IP				  DATA	      B8
+IT0				  BIT	      88
+IT1				  BIT	      8A
+LAST				  CODE	    02ED	 458
+LCD_SET_UP			  CODE	    03BD	 579
+LL				  CODE	    045C	 700
+LOOP_SUB			  CODE	    043C	 671
+LSSST				  CODE	    0449	 680
+LSST				  CODE	    0444	 677
+LWO				  NUMBER    006F	  48
+MAINN				  CODE	    0030	  13
+MSG_1				  CODE	    04A0	 771
+MSG_2				  CODE	    04B1	 772
+MSG_3				  CODE	    04C1	 773
+MSG_4				  CODE	    04CC	 775
+MSG_7				  CODE	    04D2	 776
+MSG_8				  CODE	    04D6	 777
+MSG_9				  CODE	    04DE	 778
+MUL16_BIT			  CODE	    0470	 718
+NALRM				  CODE	    00D2	 137
+NEE				  CODE	    00F3	 160
+NEEE				  CODE	    00FA	 166
+OKK				  CODE	    00D4	 138
+OV				  BIT	      D2
+P				  BIT	      D0
+P0				  DATA	      80
+P1				  DATA	      90
+P2				  DATA	      A0
+P23				  CODE	    025E	 373
+P3				  DATA	      B0
+PCON				  DATA	      87
+PRINT_DIGIT			  CODE	    0379	 541
+PRINT_DIGIT_16			  CODE	    0300	 468
+PS				  BIT	      BC
+PSW				  DATA	      D0
+PT0				  BIT	      B9
+PT1				  BIT	      BB
+PX0				  BIT	      B8
+PX1				  BIT	      BA
+RB8				  BIT	      9A
+RCAP2H				  NUMBER    00CB	  25
+RCAP2L				  NUMBER    00CA	  24
+RD				  BIT	      B7
+READY				  CODE	    0408	 617
+RED				  CODE	    01CB	 292
+REM				  NUMBER    0063	  45
+REN				  BIT	      9C
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 18
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+RESET				  CODE	    0000
+RI				  BIT	      98
+RS				  NUMBER    00A0	  17
+RS0				  BIT	      D3
+RS1				  BIT	      D4
+RW				  NUMBER    00A1	  18
+RXD				  BIT	      B0
+SBUF				  DATA	      99
+SCON				  DATA	      98
+SEC_CASEE			  CODE	    0198	 253
+SINT				  CODE	    0023
+SM0				  BIT	      9F
+SM1				  BIT	      9E
+SM2				  BIT	      9D
+SP				  DATA	      81
+STG0				  CODE	    026A	 378
+STG1				  CODE	    0257	 370
+STG2				  CODE	    0263	 375
+STR_DISP			  CODE	    03AE	 569
+T0				  BIT	      B4
+T1				  BIT	      B5
+T2CON				  NUMBER    00C8	  21
+T2MOD				  NUMBER    00C9	  22
+TB8				  BIT	      9B
+TCON				  DATA	      88
+TF0				  BIT	      8D
+TF1				  BIT	      8F
+TH0				  DATA	      8C
+TH1				  DATA	      8D
+TI				  BIT	      99
+TIMER0				  CODE	    000B
+TIMER1				  CODE	    001B
+TL0				  DATA	      8A
+TL1				  DATA	      8B
+TMOD				  DATA	      89
+TOFF1				  NUMBER    0058	  35
+TOFF2				  NUMBER    0059	  36
+TOFFL_1				  CODE	    0113	 177
+TOFFL_2				  CODE	    0118	 179
+TOFFL_3				  CODE	    0121	 183
+TOFF_HIGH1			  CODE	    010E	 175
+TOFF_LOW1			  CODE	    010B	 174
+TONE1				  NUMBER    005A	  38
+TONE2				  NUMBER    005B	  39
+TONL_1				  CODE	    0137	 192
+TONL_2				  CODE	    013C	 194
+TONL_3				  CODE	    0145	 198
+TON_HIGH1			  CODE	    0132	 190
+TON_LOW1			  CODE	    012F	 189
+TOT0				  NUMBER    0066	  41
+TOT1				  NUMBER    0065	  42
+TOT2				  NUMBER    0064	  43
+TR0				  BIT	      8C
+TR1				  BIT	      8E
+TR2				  NUMBER    00CA	  23
+TXD				  BIT	      B1
+
+ASEM-51 V1.3                                        Copyright (c) 2002 by W.W. Heinz                                         PAGE 19
+
+
+
+SYMBOL				  TYPE     VALUE	LINE
+------------------------------------------------------------
+WAIT				  CODE	    040E	 620
+WR				  BIT	      B6

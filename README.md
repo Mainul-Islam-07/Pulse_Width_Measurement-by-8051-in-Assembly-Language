@@ -3,7 +3,7 @@ Microcontroller Programming using Assembly language to measure frequency , duty 
 
 The project is done both using proteus simulation as well as Using Hardware ( 8051 microcontroller Board )
 
-![IMG](https://github.com/Mainul-Islam-07/Pulse_Width_Measurement-by-8051-in-Assembly-Language/assets/78782260/25efb5bd-be32-482d-bb02-6e31624cdf11)
+![IMG (2)](https://github.com/Mainul-Islam-07/Pulse_Width_Measurement-by-8051-in-Assembly-Language/assets/78782260/66452286-26b4-43f3-8ff5-5c41cb072dfa)
 
 
 The above figure contains the hardware required to run the tests as well as monitoring the outputs. This is like a testbench. Here link analyser is the alternate of using an oscilloscope as its too expensive . Arduino mega is used to generate frequencies and provide to the 8051 microcontroller board.

@@ -8,7 +8,6 @@ The project is done both using proteus simulation as well as Using Hardware ( 80
 
 The above figure contains the hardware required to run the tests as well as monitoring the outputs. This is like a testbench. Here link analyser is the alternate of using an oscilloscope as its too expensive . Arduino mega is used to generate frequencies and provide to the 8051 microcontroller board.
 
-Wiring in the diagram is not the actual. It will be re-uploaded soon. The above figure is given for a quick understanding. 
 
 Features:
 
